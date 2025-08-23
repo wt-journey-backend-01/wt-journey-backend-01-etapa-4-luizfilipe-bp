@@ -4,6 +4,9 @@ const swaggerUi = require('swagger-ui-express');
 
 app.use(express.json());
 
+const authRouter = require('./routes/authRoutes');
+app.use('/auth', authRouter);
+
 const casosRouter = require('./routes/casosRoutes');
 app.use('/casos', casosRouter);
 
