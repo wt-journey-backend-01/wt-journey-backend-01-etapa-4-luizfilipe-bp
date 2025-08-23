@@ -9,6 +9,11 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node --watch server.js",
+    "db:cli": "sudo docker exec -it postgres-db psql -U postgres -d policia_db",
+		"db:drop": "sudo docker exec -it postgres-db psql -U postgres -c 'DROP DATABASE IF EXISTS policia_db;'",
+		"db:create": "sudo docker exec -it postgres-db psql -U postgres -c 'CREATE DATABASE policia_db;'",
+		"db:migrate": "npx knex migrate:latest ",
+		"db:seed": "npx knex seed:run",
     "db:reset": "docker compose down -v && docker compose up -d && sleep 4 && npx knex migrate:latest && npx knex seed:run"
   },
   "repository": {
