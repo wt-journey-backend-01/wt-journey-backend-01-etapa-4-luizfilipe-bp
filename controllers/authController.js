@@ -12,7 +12,7 @@ async function register(req, res) {
         });
     }
 
-    const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS));
+    const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS) || 10);
     const hashedPassword = await bcrypt.hash(user.senha, salt);
 
     user.senha = hashedPassword;
