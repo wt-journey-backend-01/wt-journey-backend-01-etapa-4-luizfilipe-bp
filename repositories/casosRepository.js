@@ -3,14 +3,16 @@ const ApiError = require('../utils/ApiError');
 
 async function findAll(filters = {}) {
     try {
-        const casos = db('casos');
+        let query = db('casos');
         if (filters.agente_id) {
-            casos.where({ agente_id: filters.agente_id });
+            query.where({ agente_id: filters.agente_id });
         }
         if (filters.status) {
-            casos.where({ status: filters.status });
+            query.where({ status: filters.status });
         }
-        return await casos;
+
+        const casos = await query;
+        return casos;
     } catch (err) {
         throw new ApiError(500, 'Não foi possível buscar os casos.');
     }
