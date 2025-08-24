@@ -27,8 +27,8 @@ async function findById(id) {
 
 async function findByAgenteId(agente_id) {
     try {
-        const [casos] = await db('casos').where({ agente_id: agente_id });
-        if (!casos) {
+        const casos = await db('casos').where({ agente_id: agente_id });
+        if (!casos || casos.length === 0) {
             return null;
         }
         return casos;
