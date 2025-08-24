@@ -13,7 +13,7 @@ async function authenticateToken(req, res, next) {
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
         if (err) {
-            throw new ApiError(401, 'Token inválido ou expirado');
+            next(new ApiError(401, 'Token inválido ou expirado'));
         }
         req.user = user;
         next();
