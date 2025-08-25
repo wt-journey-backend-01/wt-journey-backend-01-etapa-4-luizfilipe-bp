@@ -1,100 +1,79 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 8 créditos restantes para usar o sistema de feedback AI.
+Você tem 7 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para luizfilipe-bp:
 
 Nota final: **50.5/100**
 
-Olá, Luiz Filipe! 👋🚀
+# Feedback do seu Code Buddy 🚀
 
-Primeiro, parabéns pelo empenho e pelo que você já conseguiu entregar! 🎉 É muito legal ver que as funcionalidades essenciais de usuários (registro, login, logout e exclusão) estão funcionando corretamente, com validações robustas e tratamento de erros bem feito. Isso mostra que você entendeu muito bem a parte de autenticação e segurança básica com JWT e bcrypt. Mandou bem!
-
----
-
-## O que está funcionando muito bem 👍
-
-- Você estruturou muito bem o projeto, com pastas claras para controllers, repositories, routes, middlewares e utils, exatamente como esperado.
-- A implementação da autenticação está correta, com hashing de senha, verificação de token JWT e proteção das rotas via middleware.
-- Os endpoints de usuários (`/auth/register`, `/auth/login`, `/auth/logout` e exclusão) estão funcionando, incluindo validações detalhadas para senha e email.
-- O middleware de autenticação (`authMiddleware.js`) está corretamente extraindo e validando o token JWT, protegendo as rotas sensíveis.
-- Você aplicou o middleware de autenticação em todas as rotas de agentes e casos, garantindo segurança consistente.
-- As migrations e seeds estão organizadas e criam/populam as tabelas necessárias (`usuarios`, `agentes`, `casos`).
-
-Além disso, você avançou nos bônus, como:
-
-- Implementou o endpoint `/usuarios/me` para retornar dados do usuário logado.
-- Implementou filtros e buscas nos casos e agentes, com mensagens personalizadas de erro.
+Olá, Luiz Filipe! Primeiro, parabéns pelo esforço e por já ter avançado bastante nessa etapa tão importante de segurança e autenticação! 🎉 Você implementou corretamente o fluxo de criação, login e logout de usuários com JWT, além de aplicar o middleware de autenticação nas rotas sensíveis. Isso mostra que você compreendeu bem os conceitos fundamentais de segurança na API. Muito bom! 👏
 
 ---
 
-## Pontos que precisam de atenção para destravar tudo 🔍
+## 🎯 Pontos Positivos que Merecem Destaque
 
-### 1. **Falhas nas operações CRUD para agentes e casos**
-
-Eu notei que vários endpoints relacionados a agentes e casos não estão funcionando conforme o esperado. Por exemplo, criar, listar, buscar por ID, atualizar (PUT e PATCH) e deletar agentes e casos estão falhando ou retornando erros. Isso aponta para problemas fundamentais nessas funcionalidades.
-
-**Análise raiz:**
-
-- As rotas de agentes e casos estão protegidas pelo middleware `authenticateToken`, que está correto.
-- Os controllers de agentes e casos parecem bem organizados e usam os repositórios para acessar o banco.
-- Os repositórios usam o Knex para manipular o banco, o que está certo.
-
-Porém, o problema está na **resposta dos métodos de criação e atualização** dos agentes e casos. O que eu percebi é que você está usando a sintaxe do Knex para retornar os dados após inserção/atualização, mas o comportamento pode variar conforme a versão do PostgreSQL e do Knex.
-
-Por exemplo, no `agentesRepository.js`, no método `create`:
-
-```js
-const [createdAgente] = await db('agentes').insert(agente, ['*']);
-```
-
-E no `update`:
-
-```js
-const [updatedAgente] = await db('agentes').where({ id: id }).update(updatedAgenteData, ['*']);
-```
-
-O uso do segundo argumento `['*']` para retornar as colunas é correto em versões recentes do Knex, mas às vezes pode gerar problemas dependendo da versão do driver ou do banco.
-
-**Possível causa raiz:** O retorno do insert/update não está vindo como esperado, causando erros ou dados incompletos na resposta.
-
-**Como testar/fixar:**
-
-- Verifique se o seu banco PostgreSQL e a versão do Knex suportam a sintaxe `.insert(data, ['*'])` e `.update(data, ['*'])`.
-- Se não funcionar, uma alternativa segura é fazer a inserção/atualização e depois buscar o registro criado/atualizado com uma query `.where({ id: insertedId }).first()`.
-- Por exemplo, para o create:
-
-```js
-const [id] = await db('agentes').insert(agente).returning('id');
-const createdAgente = await db('agentes').where({ id }).first();
-// formate dataDeIncorporacao como antes
-```
-
-- Para o update:
-
-```js
-await db('agentes').where({ id }).update(updatedAgenteData);
-const updatedAgente = await db('agentes').where({ id }).first();
-// formate dataDeIncorporacao
-```
-
-Assim você garante que o dado retornado está consistente.
+- Sua estrutura de diretórios está muito bem organizada, seguindo o padrão MVC e separando responsabilidades entre controllers, repositories, rotas e middlewares. Isso facilita muito a manutenção e escalabilidade do projeto.
+- O uso do bcrypt para hashing de senhas e do jsonwebtoken para geração e validação de tokens JWT está correto e bem aplicado.
+- A validação de dados usando `zod` nas rotas de autenticação ajuda a garantir que os dados recebidos estejam no formato esperado.
+- O middleware de autenticação (`authMiddleware.js`) está implementado para proteger as rotas de agentes e casos, o que é essencial para a segurança.
+- Você criou a migration para a tabela `usuarios` com os campos corretos, garantindo a persistência dos dados de usuários.
+- O arquivo `INSTRUCTIONS.md` está completo e explica claramente como registrar, logar e usar o token JWT, o que é muito importante para o uso da API.
+- Os endpoints de usuários estão funcionando bem, incluindo criação, login, logout e exclusão.
 
 ---
 
-### 2. **Tratamento de erros para IDs inválidos**
+## 🚨 Oportunidades de Melhoria (Análise Profunda)
 
-Percebi que os testes esperam que você retorne erro 404 para IDs inválidos (por exemplo, strings que não são números). No seu código, você usa um utilitário `validateIDParam` no middleware das rotas, mas não vi o código dele aqui.
+Apesar das conquistas, percebi que algumas funcionalidades importantes relacionadas a **agentes** e **casos** ainda não estão funcionando conforme o esperado. Isso impacta diretamente na experiência e na robustez da API. Vamos analisar juntos os principais pontos:
 
-**Dica:** Garanta que o middleware valide o parâmetro `id` para ser um número inteiro positivo. Caso contrário, retorne um erro 404 com mensagem clara.
+---
+
+### 1. **Falha na criação, listagem, atualização e exclusão de agentes e casos**
+
+Você aplicou o middleware de autenticação corretamente nas rotas de agentes e casos, o que é ótimo. Porém, os testes indicam que as operações de CRUD para agentes e casos não estão funcionando como esperado, retornando erros ou status incorretos.
+
+**Causa raiz provável:**  
+Ao analisar os controllers `agentesController.js` e `casosController.js`, percebi que você faz chamadas para os repositories para realizar as operações, mas não há tratamento explícito para erros de validação de payload ou para checar se os IDs enviados são válidos (por exemplo, se o ID é um número inteiro positivo). Além disso, a validação de payload para agentes e casos parece estar ausente ou incompleta.
+
+Por exemplo, no seu arquivo de rotas `agentesRoutes.js`, você usa o middleware `validateSchema` com schemas para agentes, mas não vi os arquivos de schemas compartilhados no seu código enviado. Se esses schemas não estiverem validados corretamente, a API pode estar aceitando dados inválidos, causando falhas na criação e atualização.
+
+**Exemplo de como validar o payload usando `zod` para agentes:**
+
+```js
+const { z } = require('zod');
+
+const postAgenteSchema = z.object({
+  nome: z.string().min(1, 'Nome é obrigatório'),
+  dataDeIncorporacao: z.string().refine(dateStr => !isNaN(Date.parse(dateStr)), {
+    message: 'Data de incorporação inválida',
+  }),
+  cargo: z.enum(['delegado', 'inspetor']),
+});
+```
+
+Você deve garantir que o schema seja aplicado em todas as rotas que recebem dados (POST, PUT, PATCH) para agentes e casos.
+
+---
+
+### 2. **Validação do parâmetro `id` nas rotas**
+
+Nos controllers, você usa uma função `validateIDParam` para validar o parâmetro `id` nas rotas, o que é ótimo! Mas percebi que, em alguns casos, ao buscar agentes ou casos por ID, se o ID for inválido (exemplo: string não numérica), a API não está retornando um erro 404 ou 400 conforme esperado.
+
+**Por que isso acontece?**  
+Provavelmente o middleware `validateIDParam` não está validando corretamente o formato do ID, ou está deixando passar valores inválidos para os controllers, que tentam buscar no banco e retornam `null`, mas sem lançar o erro adequado.
+
+**Sugestão:**  
+No middleware `validateIDParam`, certifique-se de validar se o `id` é um número inteiro positivo e, caso contrário, retorne um erro 400 com mensagem clara.
 
 Exemplo simples:
 
 ```js
 function validateIDParam(req, res, next) {
-  const id = req.params.id;
-  if (!/^\d+$/.test(id)) {
-    return res.status(404).json({ message: 'ID inválido' });
+  const { id } = req.params;
+  if (!id || isNaN(Number(id)) || Number(id) <= 0) {
+    return res.status(400).json({ error: 'ID inválido' });
   }
   next();
 }
@@ -102,118 +81,105 @@ function validateIDParam(req, res, next) {
 
 ---
 
-### 3. **Retorno do token JWT no login**
+### 3. **Retorno e tratamento de erros em controllers**
 
-No seu `authController.js`, você retorna o token com a chave `access_token`, mas no enunciado o exemplo mostra `acess_token` (sem o segundo "c"). Atenção a esse detalhe, pois pode causar falha na integração.
+Notei que, em alguns controllers, você lança um `ApiError` quando não encontra um agente ou caso, o que é ótimo para padronizar erros. Porém, não vi no seu `errorHandler.js` o tratamento para capturar esses erros e enviar a resposta adequada.
 
-Seu código:
+**Por que isso é importante?**  
+Se o middleware de tratamento de erros não estiver capturando o `ApiError` e formatando a resposta, o usuário pode receber erros genéricos ou a API pode falhar silenciosamente.
+
+**Sugestão:**  
+No seu arquivo `utils/errorHandler.js`, implemente um middleware que capture erros do tipo `ApiError` e envie um JSON com o status e a mensagem.
+
+Exemplo:
 
 ```js
-return res.status(200).json({ access_token: token });
+function errorHandler(err, req, res, next) {
+  if (err instanceof ApiError) {
+    return res.status(err.statusCode).json({
+      error: err.message,
+      details: err.details || null,
+    });
+  }
+  
+  console.error(err);
+  res.status(500).json({ error: 'Erro interno do servidor' });
+}
+
+module.exports = errorHandler;
 ```
 
-O enunciado espera:
+---
+
+### 4. **Resposta inconsistente no login: chave do token**
+
+No seu controller de autenticação (`authController.js`), você retorna o token JWT com a chave `access_token`, que está correto e conforme a especificação. Porém, no arquivo `INSTRUCTIONS.md`, no exemplo de resposta de login, a chave está escrita como `acess_token` (sem o segundo "c").  
+
+Isso pode gerar confusão para quem consome a API, pois a chave esperada é `access_token`.
+
+**Recomendo** alinhar o texto do `INSTRUCTIONS.md` para usar `access_token`, que é o padrão mais comum e o que você já usa no código:
 
 ```json
 {
-  "acess_token": "token aqui"
+  "access_token": "jwt_gerado_aqui"
 }
 ```
 
-**Solução:** Ajuste para:
+---
 
-```js
-return res.status(200).json({ acess_token: token });
-```
+### 5. **Logout não invalida token**
+
+No seu controller `authController.js`, a função de logout apenas responde com status 204, mas não há um mecanismo para invalidar o token JWT (por exemplo, blacklist ou expiração imediata). Isso é comum em APIs simples, mas vale lembrar que o logout não "destrói" o token no cliente e o token pode continuar válido até expirar.
+
+Se quiser implementar um logout mais seguro, pode pensar em usar refresh tokens e blacklist de tokens, mas isso é um bônus, não obrigatório.
 
 ---
 
-### 4. **Logout e exclusão de usuário**
+### 6. **Endpoints bônus não implementados**
 
-O logout está implementado como retorno 204 sem invalidar o token, o que é aceitável (stateless JWT). Porém, o endpoint DELETE `/users/:id` está no controller `authController.js` como `deleteUser`, mas não vi a rota para ele em `authRoutes.js`.
-
-**Sugestão:** Verifique se você criou a rota para exclusão do usuário, por exemplo:
-
-```js
-router.delete('/users/:id', authController.deleteUser);
-```
-
-Se não, adicione para garantir que a exclusão funcione.
+Vi que o endpoint `/usuarios/me` para retornar os dados do usuário autenticado não está presente. Ele é um recurso bônus que traz uma ótima experiência para o cliente da API.
 
 ---
 
-### 5. **Documentação no INSTRUCTIONS.md**
+## 📚 Recursos que vão te ajudar muito
 
-Seu arquivo `INSTRUCTIONS.md` está bem escrito para configuração do projeto e banco, mas não vi instruções claras sobre como registrar, logar, enviar token JWT no header `Authorization` e fluxo esperado de autenticação.
-
-**Dica:** Acrescente essas informações para facilitar o uso e testes da API, por exemplo:
-
-```md
-## Autenticação
-
-### Registro
-POST /auth/register
-Body: { nome, email, senha }
-
-### Login
-POST /auth/login
-Body: { email, senha }
-Resposta: { acess_token: "token" }
-
-### Envio do Token
-Para acessar rotas protegidas, envie o header:
-Authorization: Bearer <token>
-
-### Logout
-POST /auth/logout
-```
-
----
-
-### 6. **Validação de senha no registro**
-
-Você está validando a senha no schema de validação (`usuariosSchema.js`), e isso está ótimo! Só fique atento para garantir que a senha tem:
-
-- Pelo menos 8 caracteres
-- Pelo menos uma letra minúscula
-- Pelo menos uma letra maiúscula
-- Pelo menos um número
-- Pelo menos um caractere especial
-
-Se quiser, pode compartilhar seu schema para eu ajudar a revisar.
-
----
-
-## Recursos que recomendo para você dar uma turbinada no seu entendimento:
-
-- Para entender melhor a manipulação de dados com Knex e evitar problemas de retorno no insert/update, veja este guia detalhado:  
+- Para aprofundar no uso do Knex e evitar problemas com queries:  
   https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s
 
-- Para aprofundar em autenticação JWT e bcrypt, recomendo muito este vídeo, feito pelos meus criadores, que explica os conceitos fundamentais:  
-  https://www.youtube.com/watch?v=Q4LQOfYwujk
-
-- Para garantir que sua estrutura de projeto está alinhada com boas práticas MVC e organização, veja este vídeo que explica arquitetura e organização de código Node.js:  
+- Para entender melhor a arquitetura MVC e organização do projeto:  
   https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s
 
-- Caso tenha dúvidas na configuração do banco com Docker e Knex, este vídeo explica passo a passo:  
-  https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s
+- Para consolidar os conceitos de autenticação, JWT e bcrypt (esse vídeo, feito pelos meus criadores, fala muito bem sobre os fundamentos):  
+  https://www.youtube.com/watch?v=Q4LQOfYwujk
+
+- Para entender a prática de JWT na autenticação:  
+  https://www.youtube.com/watch?v=keS0JWOypIU
+
+- Para combinar uso de JWT e bcrypt na prática:  
+  https://www.youtube.com/watch?v=L04Ln97AwoY
 
 ---
 
-## Resumo rápido dos principais pontos para focar:
+## 📝 Resumo dos principais pontos para focar
 
-- ⚙️ Ajustar os métodos de criação e atualização em agentes e casos para garantir que os dados retornados estejam corretos (usar `.returning('id')` e buscar depois, se necessário).
-- 🔍 Garantir validação adequada dos parâmetros `id` nas rotas, retornando 404 para IDs inválidos.
-- 📝 Ajustar o nome da chave do token JWT no login para `acess_token` conforme o enunciado.
-- 🛣️ Criar a rota para exclusão de usuário (`DELETE /users/:id`) se ainda não existir.
-- 📚 Completar a documentação no `INSTRUCTIONS.md` com exemplos de registro, login e uso do token JWT.
-- 🔐 Continuar cuidando das validações de senha e email para garantir segurança.
+- [ ] Validar corretamente os payloads de agentes e casos usando schemas (`zod`), aplicando-os em todas as rotas que recebem dados (POST, PUT, PATCH).
+- [ ] Garantir que o middleware `validateIDParam` valide IDs corretamente, retornando erro 400 para IDs inválidos.
+- [ ] Implementar tratamento de erros consistente com `ApiError` no middleware `errorHandler.js` para enviar respostas padronizadas.
+- [ ] Corrigir chave do token JWT para `access_token` no arquivo de instruções para evitar confusão.
+- [ ] Considerar implementar o endpoint `/usuarios/me` para retornar dados do usuário autenticado (bônus).
+- [ ] Revisar o fluxo de logout para entender que o token JWT só expira após o tempo definido, logout não invalida token automaticamente (bônus para segurança avançada).
 
 ---
 
-Luiz Filipe, seu projeto está muito bem estruturado e você está no caminho certo! 💪 Corrigindo esses pontos, seu sistema vai ficar sólido e profissional. Continue firme que você vai dominar esse desafio! Qualquer dúvida, estou aqui para ajudar! 😉
+## Finalizando 🎉
 
-Um abraço e até a próxima revisão! 🚓✨
+Luiz, você está no caminho certo! A base da sua API está sólida, com autenticação e segurança bem implementadas. Agora é hora de ajustar os detalhes para garantir que todas as operações de agentes e casos funcionem perfeitamente, com validações robustas e tratamento de erros adequado.
+
+Continue assim, que o progresso é certo! Se precisar, volte aos vídeos recomendados para reforçar os conceitos e não hesite em testar bastante suas rotas com ferramentas como Postman ou Insomnia para garantir que tudo está funcionando como esperado.
+
+Conte comigo para o que precisar! 🚀💪
+
+Um abraço e bons códigos! 👨‍💻✨
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
