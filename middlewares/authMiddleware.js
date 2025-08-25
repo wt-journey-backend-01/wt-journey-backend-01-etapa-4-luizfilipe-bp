@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const ApiError = require('../utils/ApiError');
 
+const secret = process.env.JWT_SECRET || 'secret';
+
 async function authenticateToken(req, res, next) {
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.split(' ')[1];
@@ -11,7 +13,7 @@ async function authenticateToken(req, res, next) {
         });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    jwt.verify(token, secret, (err, user) => {
         if (err) {
             next(new ApiError(401, 'Token inválido ou expirado'));
         }

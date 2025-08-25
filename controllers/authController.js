@@ -3,6 +3,8 @@ const ApiError = require('../utils/ApiError');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
+const secret = process.env.JWT_SECRET || 'secret';
+
 async function register(req, res) {
     const user = req.body;
 
@@ -39,7 +41,7 @@ async function login(req, res) {
 
     const token = jwt.sign(
         { id: existingUser.id, nome: existingUser.nome, email: existingUser.email },
-        process.env.JWT_SECRET,
+        secret,
         {
             expiresIn: '1h',
         }
