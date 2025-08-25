@@ -42,8 +42,7 @@ async function getCasosByAgente(req, res) {
     await getAgenteOrThrowApiError(id);
 
     const casos = await casosRepository.findByAgenteId(id);
-    console.log(casos);
-    if (!casos) {
+    if (casos.length === 0) {
         throw new ApiError(404, `Não foi possível encontrar casos para o agente de Id: ${id}`);
     }
     res.status(200).json(casos);

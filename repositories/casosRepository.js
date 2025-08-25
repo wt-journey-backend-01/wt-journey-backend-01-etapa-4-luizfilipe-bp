@@ -30,10 +30,7 @@ async function findById(id) {
 async function findByAgenteId(agente_id) {
     try {
         const casos = await db('casos').where({ agente_id: agente_id });
-        if (!casos || casos.length === 0) {
-            return null;
-        }
-        return casos;
+        return casos || [];
     } catch (err) {
         throw new ApiError(500, 'Não foi possível encontrar os casos por agente Id');
     }
