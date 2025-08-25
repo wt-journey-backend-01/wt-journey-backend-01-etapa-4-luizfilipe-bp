@@ -15,7 +15,7 @@ async function authenticateToken(req, res, next) {
 
     jwt.verify(token, secret, (err, user) => {
         if (err) {
-            next(new ApiError(401, 'Token inválido ou expirado'));
+            return next(new ApiError(401, 'Token inválido ou expirado'));
         }
         req.user = user;
         next();
