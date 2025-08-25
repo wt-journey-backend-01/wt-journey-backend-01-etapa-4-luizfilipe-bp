@@ -100,6 +100,18 @@ A API possui endpoints para **registro** e **login** de usuários, com autentica
 
 ## Login de Usuários
 
+### Variáveis de ambiente
+
+Certifique-se de que seu arquivo `.env` contém as seguintes variáveis:
+
+```env
+JWT_SECRET=seu_segredo
+SALT_ROUNDS=valor_inteiro_do_salt
+```
+
+-   `JWT_SECRET`: Segredo utilizado para assinar e validar os tokens JWT.
+-   `SALT_ROUNDS`: Número de rounds para geração do hash das senhas.
+
 **Rota:** `POST /auth/login`
 
 ```json
