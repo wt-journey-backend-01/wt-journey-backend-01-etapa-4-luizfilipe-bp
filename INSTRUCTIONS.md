@@ -57,3 +57,85 @@ NODE_ENV=development
     ```bash
     npm run db:reset
     ```
+
+## 7. Outros Scripts disponíveis
+
+`db:cli`
+
+Abre o cliente interativo do PostgreSQL dentro do container Docker `postgres-db`, conectado ao banco `policia_db` com o usuário `postgres`.
+
+`db:drop`
+
+Remove o banco de dados `policia_db` (caso exista) dentro do container Docker.
+
+`db:create`
+
+Cria um novo banco de dados chamado `policia_db` dentro do container Docker.
+
+`db:migrate`
+
+Executa todas as migrações pendentes do **Knex**, estruturando o banco (criação de tabelas, colunas, etc.).
+
+`db:seed`
+
+Executa os arquivos de _seed_ do **Knex**, populando o banco com dados iniciais para testes e desenvolvimento.
+
+# Instruções para autenticação de Usuário na API
+
+A API possui endpoints para **registro** e **login** de usuários, com autenticação baseada em **JWT (JSON Web Token)**.
+
+## Registro de Usuários
+
+**Rota:** `POST /auth/register`
+
+### 📥 Requisição
+
+```json
+{
+    "nome": "Luiz Filipe",
+    "email": "luiz@email.com",
+    "senha": "minhaSenha123."
+}
+```
+
+## Login de Usuários
+
+**Rota:** `POST /auth/login`
+
+```json
+{
+    "email": "luiz@email.com",
+    "senha": "minhaSenha123."
+}
+```
+
+### Resposta de sucesso
+
+```json
+{
+    "access_token": "jwt_gerado_aqui"
+}
+```
+
+## Autenticação com JWT
+
+Após o login, o cliente deve enviar o token JWT no **header Authorization** em todas as requisições que exigem autenticação.
+
+### Exemplo de envio com Header Authorization:
+
+```
+Authorization: Bearer jwt_gerado_aqui
+```
+
+---
+
+## Fluxo de Autenticação
+
+1. O usuário se **registra** com `POST /auth/register`.
+2. O usuário faz **login** em `POST /auth/login` e recebe um **JWT**.
+3. O cliente envia o **JWT no header** `Authorization` a cada requisição protegida.
+4. O servidor valida o token:
+    - Se válido: acesso concedido.
+    - Se inválido ou expirado: retorno `401 Unauthorized`.
+
+---
