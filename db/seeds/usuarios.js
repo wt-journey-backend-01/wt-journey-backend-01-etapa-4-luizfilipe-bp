@@ -12,16 +12,16 @@ exports.seed = async function (knex) {
             email: 'luizf@gmail.com',
             senha: await bcrypt.hash(
                 'Senha123.',
-                await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS))
+                await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS) || 10)
             ),
         },
-        
+
         {
             nome: 'Maria Silva',
             email: 'marias@gmail.com',
             senha: await bcrypt.hash(
                 'sEnha123-',
-                await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS))
+                await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS) || 10)
             ),
         },
         {
@@ -29,7 +29,7 @@ exports.seed = async function (knex) {
             email: 'joaos@gmail.com',
             senha: await bcrypt.hash(
                 'senhA123*',
-                await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS))
+                await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS) || 10)
             ),
         },
     ]);
