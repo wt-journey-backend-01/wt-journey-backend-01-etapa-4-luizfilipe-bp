@@ -5,7 +5,6 @@ function validateSchema(schema) {
     return (req, res, next) => {
         const data = req.body;
         const results = schema.safeParse(data);
-        console.log(results);
 
         if (!results.success) {
             const issues = results.error.issues;
