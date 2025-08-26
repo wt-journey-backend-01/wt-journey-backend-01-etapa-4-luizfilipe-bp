@@ -8,18 +8,20 @@ async function authenticateToken(req, res, next) {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        throw new ApiError(401, 'Token não fornecido', {
-            token: 'O token de autenticação é necessário',
-        });
+        return next(
+            new ApiError(401, 'Token não fornecido', {
+                token: 'O token de autenticação é necessário',
+            })
+        );
     }
 
-    jwt.verify(token, secret, (err, user) => {
-        if (err) {
-            return next(new ApiError(401, 'Token inválido ou expirado'));
-        }
+    try {
+        const user = jwt.verify(token, secret);
         req.user = user;
         next();
-    });
+    } catch (err) {
+        return next(new ApiError(401, 'Token inválido ou expirado'));
+    }
 }
 
 module.exports = { authenticateToken };
