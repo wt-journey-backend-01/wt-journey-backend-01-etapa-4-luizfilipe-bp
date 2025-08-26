@@ -1,235 +1,224 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 6 créditos restantes para usar o sistema de feedback AI.
+Você tem 5 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para luizfilipe-bp:
 
 Nota final: **76.0/100**
 
-# Feedback para o Luiz Filipe - API REST com Segurança e Autenticação 🚓🔐
+Olá, Luiz Filipe! 👋🚀
 
-Olá Luiz! Tudo bem? Primeiramente, parabéns pelo empenho e pela estruturação do seu projeto! 🎉🚀
+Antes de mais nada, quero parabenizá-lo pelo esforço e pela qualidade do seu código! 🎉 Você implementou muito bem a parte de usuários, com registro, login, logout e exclusão funcionando perfeitamente, além de garantir validações importantes para os dados de usuário — isso é essencial para segurança e robustez da aplicação. Também vi que você estruturou seu projeto de forma organizada, respeitando o padrão MVC com controllers, repositories e rotas bem separados. Isso é uma ótima prática para projetos profissionais! 👏
 
----
-
-## 🎉 Pontos Fortes e Conquistas Bônus
-
-- Você implementou muito bem a criação, login e logout de usuários, com tratamento correto para validação de dados e erros. A senha está sendo hasheada com bcrypt, o JWT está sendo gerado com expiração e você está usando variáveis de ambiente para o segredo — isso é essencial para segurança! 👏
-- A estrutura do seu projeto está muito bem organizada, seguindo o padrão MVC com controllers, repositories, middlewares e rotas bem separados.
-- Você aplicou o middleware de autenticação nas rotas sensíveis, garantindo que o acesso seja controlado via JWT.
-- Os endpoints de usuários (`/auth/register`, `/auth/login`) estão funcionando corretamente, e o token JWT retornado possui expiração válida.
-- Você conseguiu implementar alguns bônus como o filtro de agentes por cargo e sorting por data, além da proteção das rotas com autenticação.
-  
-Esses são pontos que mostram que você entendeu muito bem os conceitos de autenticação e segurança, além de boas práticas no Node.js! 🌟
+Além disso, você conseguiu implementar corretamente a proteção das rotas com JWT, e suas mensagens de erro personalizadas estão claras e amigáveis, o que melhora bastante a experiência do usuário e facilita a manutenção do código.
 
 ---
 
-## 🚨 Pontos de Atenção e Oportunidades de Aprendizado
-
-Apesar dos pontos fortes, percebi algumas falhas que impactam diretamente o funcionamento da API, principalmente relacionadas à manipulação das rotas de agentes e casos, além de validação e tratamento de erros. Vamos destrinchar para você entender o que está acontecendo e como melhorar:
+### Agora, vamos aos pontos que precisam de atenção para que sua API fique ainda mais sólida e completa:
 
 ---
 
-### 1. **Falha na proteção correta das rotas e no tratamento do token JWT**
+## 1. Estrutura de Diretórios e Arquivos
 
-No seu middleware `authMiddleware.js`, você usa o `jwt.verify` com callback, o que é correto, mas se o token for inválido, você chama `next(new ApiError(401, 'Token inválido ou expirado'));` e **não retorna ou para a execução**. Isso faz com que o código continue e chame `next()` novamente, o que pode causar comportamento inesperado.
+Sua estrutura está muito próxima do esperado, mas percebi que o arquivo **errorHandler.js** está dentro da pasta `utils/`, enquanto a especificação pede que ele seja utilizado como middleware para tratamento de erros. Isso está correto, mas garanta que ele esteja bem configurado para capturar erros lançados pelas suas rotas e middlewares.
 
-Veja o trecho:
+Além disso, você criou corretamente as pastas novas para autenticação (`authRoutes.js`, `authController.js`, `usuariosRepository.js`, `authMiddleware.js`), o que é ótimo! Isso demonstra que você entendeu como separar responsabilidades.
+
+---
+
+## 2. Problemas com as Rotas de Agentes e Casos — Proteção e Validação
+
+### O que eu percebi:
+
+Você aplicou o middleware `authenticateToken` em todas as rotas sensíveis de agentes e casos, o que é perfeito! Porém, alguns testes indicam que a proteção via JWT não está bloqueando corretamente requisições sem token ou com token inválido, ou que o status retornado não está conforme o esperado (por exemplo, retornar 401 ao invés de outros códigos).
+
+**Análise do código do middleware `authMiddleware.js`:**
 
 ```js
-jwt.verify(token, secret, (err, user) => {
-    if (err) {
-        next(new ApiError(401, 'Token inválido ou expirado'));
+async function authenticateToken(req, res, next) {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        throw new ApiError(401, 'Token não fornecido', {
+            token: 'O token de autenticação é necessário',
+        });
     }
-    req.user = user;
-    next();
-});
+
+    jwt.verify(token, secret, (err, user) => {
+        if (err) {
+            return next(new ApiError(401, 'Token inválido ou expirado'));
+        }
+        req.user = user;
+        next();
+    });
+}
 ```
 
-**Problema:** Se `err` existir, você chama `next()` com o erro, mas não para a função, então o `req.user = user` e `next()` são chamados mesmo assim.
+**Sugestão:**  
+Lançar um erro com `throw` dentro de um middleware assíncrono pode não ser capturado corretamente pelo Express, dependendo do seu middleware de tratamento de erros. O ideal é usar `next()` para encaminhar o erro para o middleware de tratamento.
 
-**Como corrigir:** Adicione um `return` para interromper a execução quando o token for inválido:
+Além disso, o uso de `jwt.verify` com callback dentro de uma função `async` pode gerar confusão. Uma alternativa mais clara e segura é usar `jwt.verify` de forma síncrona dentro de um bloco `try/catch`, assim:
 
 ```js
-jwt.verify(token, secret, (err, user) => {
-    if (err) {
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return next(new ApiError(401, 'Token não fornecido', {
+            token: 'O token de autenticação é necessário',
+        }));
+    }
+
+    try {
+        const user = jwt.verify(token, secret);
+        req.user = user;
+        next();
+    } catch (err) {
         return next(new ApiError(401, 'Token inválido ou expirado'));
     }
-    req.user = user;
-    next();
-});
+}
 ```
 
-Esse ajuste garante que, ao detectar um token inválido, a requisição não prossiga para a próxima etapa, retornando o erro corretamente.
+Essa abordagem evita possíveis problemas de tratamento de erros e garante que o fluxo siga corretamente para o middleware de erro.
 
 ---
 
-### 2. **Retorno dos dados dos agentes e casos: tratamento das datas**
+## 3. Validação dos Dados nas Rotas PUT e PATCH de Agentes e Casos
 
-Nos seus repositórios (`agentesRepository.js` e `casosRepository.js`), você formata a data `dataDeIncorporacao` para string ISO, o que é ótimo. Porém, há uma inconsistência na forma como você retorna os casos: no `casosRepository.js`, você não está formatando as datas (se existirem), nem está tratando casos onde o retorno pode ser vazio.
+### O que está acontecendo:
 
-Além disso, na função `getCasosByAgente` do `agentesController.js`, você faz:
+Você possui validações de payload usando schemas do Zod, o que é ótimo! No entanto, alguns testes apontaram que quando o payload enviado para atualizar um agente ou caso está em formato incorreto, o servidor não retorna o status 400 esperado, ou não bloqueia a operação.
+
+Isso pode acontecer se o middleware `validateSchema` não estiver corretamente configurado para interceptar e responder com erro quando o schema não é validado.
+
+**Dica:**  
+Verifique se o middleware `validateSchema` está chamando `next()` com um erro quando a validação falha, e se o middleware `errorHandler` está capturando esses erros e enviando a resposta com status 400.
+
+Além disso, no controller você tem trechos como:
 
 ```js
-const casos = await casosRepository.findByAgenteId(id);
-console.log(casos);
-if (!casos) {
-    throw new ApiError(404, `Não foi possível encontrar casos para o agente de Id: ${id}`);
+if (Object.keys(agente).length === 0) {
+    throw new ApiError(
+        400,
+        'Deve haver pelo menos um campo para realizar a atualização de agente'
+    );
 }
-res.status(200).json(casos);
 ```
 
-No seu repositório, `findByAgenteId` retorna `null` se não encontrar casos, o que é correto. Porém, o teste espera uma lista vazia `[]` quando não há casos, não `null`.
+Isso é ótimo para garantir que o corpo da requisição não esteja vazio. Só garanta que esse erro também seja tratado corretamente pelo middleware de erro para retornar status 400.
 
-**Sugestão:** Ajuste o `findByAgenteId` para retornar uma lista vazia em vez de `null`:
+---
+
+## 4. Endpoint de Exclusão de Usuário
+
+Vi que você implementou o método `deleteUser` no `authController` e o método `remove` no `usuariosRepository`, mas percebi que a rota para exclusão do usuário (`DELETE /users/:id`) não está declarada no arquivo de rotas `authRoutes.js`. Isso pode fazer com que a exclusão não funcione corretamente.
+
+**Sugestão:**  
+Adicione essa rota no `authRoutes.js`, por exemplo:
 
 ```js
-async function findByAgenteId(agente_id) {
+const authController = require('../controllers/authController');
+const { authenticateToken } = require('../middlewares/authMiddleware');
+
+router.delete('/users/:id', authenticateToken, authController.deleteUser);
+```
+
+Assim, você garante que somente usuários autenticados possam deletar usuários, e que a rota esteja exposta na API.
+
+---
+
+## 5. Endpoint Bônus `/usuarios/me`
+
+Notei que você não implementou o endpoint `/usuarios/me` para retornar os dados do usuário autenticado. Essa funcionalidade é um bônus que melhora a experiência do usuário e ajuda a validar o token.
+
+**Dica:**  
+Você pode criar essa rota em `authRoutes.js` e o método correspondente no `authController.js` assim:
+
+```js
+// authRoutes.js
+router.get('/usuarios/me', authenticateToken, authController.getMe);
+```
+
+```js
+// authController.js
+async function getMe(req, res) {
+    const userId = req.user.id;
+    const user = await usuariosRepository.findUserById(userId);
+    if (!user) {
+        throw new ApiError(404, 'Usuário não encontrado');
+    }
+    res.status(200).json(user);
+}
+```
+
+E no `usuariosRepository.js` você precisaria implementar `findUserById`:
+
+```js
+async function findUserById(id) {
     try {
-        const casos = await db('casos').where({ agente_id: agente_id });
-        return casos || [];
+        const user = await db('usuarios').where({ id }).first();
+        return user || null;
     } catch (err) {
-        throw new ApiError(500, 'Não foi possível encontrar os casos por agente Id');
+        throw new ApiError(500, 'Erro ao buscar usuário por ID');
     }
 }
 ```
 
-E no controller, ajuste a verificação para:
+---
 
-```js
-if (casos.length === 0) {
-    throw new ApiError(404, `Não foi possível encontrar casos para o agente de Id: ${id}`);
-}
-```
+## 6. Sobre as Migrations e Seeds
 
-Assim você mantém a coerência do retorno e o tratamento correto do erro.
+Você criou a migration para a tabela `usuarios` corretamente, com os campos necessários, e também implementou os seeds para agentes e casos. No entanto, não vi seed para usuários, o que pode ser útil para testes.
+
+Além disso, sua migration está sem validação da senha, mas isso é esperado, pois as regras de senha são aplicadas na camada de aplicação (validação no schema do Zod).
 
 ---
 
-### 3. **Validação dos payloads para PUT e PATCH nas rotas de agentes e casos**
+## 7. Variáveis de Ambiente
 
-Nos seus controllers `agentesController.js` e `casosController.js`, você lança erro 400 quando o payload está vazio para PATCH, mas não está validando corretamente o formato do payload para PUT e PATCH.
+Vi que você está usando `process.env.JWT_SECRET` e `process.env.SALT_ROUNDS` com valores padrão no código, o que é bom para evitar crashes, mas lembre-se que em produção o `.env` deve conter valores reais e seguros.
 
-Por exemplo, o teste espera que, ao enviar um payload com campos extras ou inválidos, a API retorne erro 400. Seu código depende do middleware de validação (`validateSchema`) para isso, que é ótimo, mas pode haver casos em que o middleware não está bloqueando payloads com campos extras.
-
-**Verifique se os schemas de validação (`usuariosSchema.js`, `agentesSchema.js`, `casosSchema.js`) estão configurados para rejeitar campos extras (strict mode) e validar todos os campos obrigatórios.**
-
-Se estiver usando `zod` (como parece pelo package.json), você pode usar `.strict()` para evitar campos extras:
-
-```js
-const postAgenteSchema = z.object({
-  nome: z.string(),
-  dataDeIncorporacao: z.string().refine(...),
-  cargo: z.string(),
-}).strict();
-```
-
-Isso vai garantir que qualquer campo extra cause erro 400 automático.
+No seu `INSTRUCTIONS.md`, você explicou bem como configurar o `.env`, o que é ótimo!
 
 ---
 
-### 4. **Endpoint de deletar usuário (`DELETE /users/:id`) não está registrado nas rotas**
+## Recursos para Aprimorar seu Conhecimento
 
-No seu `authRoutes.js`, você tem apenas:
+- Para entender melhor a autenticação com JWT e middleware, recomendo muito **[esse vídeo, feito pelos meus criadores, que fala muito bem sobre conceitos básicos e fundamentais de cibersegurança e autenticação](https://www.youtube.com/watch?v=Q4LQOfYwujk)**.
 
-```js
-router.post('/register', ...);
-router.post('/login', ...);
-```
+- Para aprofundar no uso de JWT na prática, veja também: **[JWT na prática](https://www.youtube.com/watch?v=keS0JWOypIU)**.
 
-Mas no requisito, você deveria ter uma rota para deletar usuário:
+- Para entender melhor o uso combinado de JWT e bcrypt para segurança, confira: **[JWT e bcrypt juntos](https://www.youtube.com/watch?v=L04Ln97AwoY)**.
 
-```js
-router.delete('/users/:id', authController.deleteUser);
-```
-
-Ou, para manter o padrão, poderia ser:
-
-```js
-router.delete('/usuarios/:id', authController.deleteUser);
-```
-
-Sem essa rota, o endpoint de exclusão de usuário não existe e isso pode causar falha em testes que esperam essa funcionalidade.
+- Se quiser reforçar a organização do seu projeto e arquitetura MVC, este vídeo é excelente: **[Arquitetura MVC em Node.js](https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s)**.
 
 ---
 
-### 5. **Logout não invalida JWT — comportamento esperado**
+# Resumo dos Principais Pontos para Focar:
 
-Seu logout apenas retorna status 204, mas não invalida o token (o que é comum em JWT stateless). Embora não seja obrigatório invalidar o token (pois JWTs são stateless), seria interessante documentar isso no `INSTRUCTIONS.md` para deixar claro que o logout é "simulado" e que o token expira após 1 hora.
+- ✅ Continue valorizando a estrutura clara e organizada do seu projeto, você está no caminho certo!
 
----
+- ⚠️ Ajuste o middleware `authenticateToken` para usar `try/catch` e `next()` para tratamento correto de erros.
 
-### 6. **Variável de ambiente `JWT_SECRET` e `SALT_ROUNDS`**
+- ⚠️ Verifique se o middleware de validação de schemas está capturando e respondendo com status 400 para payloads inválidos.
 
-Você está usando:
+- ⚠️ Adicione a rota para exclusão de usuários no `authRoutes.js` para que o endpoint funcione corretamente.
 
-```js
-const secret = process.env.JWT_SECRET || 'secret';
-const salt = await bcrypt.genSalt(parseInt(process.env.SALT_ROUNDS) || 10);
-```
+- ⚠️ Implemente o endpoint `/usuarios/me` para retornar dados do usuário autenticado (bônus).
 
-É importante garantir que o `.env` contenha essas variáveis para produção, e que o fallback não seja usado em ambiente real. Além disso, no `INSTRUCTIONS.md`, seria legal adicionar a variável `JWT_SECRET` para que o aluno saiba que deve configurá-la.
+- 🔐 Garanta que o `.env` contenha as variáveis `JWT_SECRET` e `SALT_ROUNDS` com valores seguros.
 
----
-
-### 7. **Documentação no INSTRUCTIONS.md**
-
-A documentação está muito boa, clara e direta. Parabéns! Só uma observação: no exemplo de resposta do login, você usa `"access_token"` com underscore, mas no requisito está `"acess_token"` com "c" só. Isso pode causar divergência no teste.
-
-Recomendo alinhar para o padrão esperado, que é:
-
-```json
-{
-  "acess_token": "token aqui"
-}
-```
-
-Ou confirmar qual padrão você quer usar e manter consistente.
+- 💡 Considere adicionar seeds para usuários para facilitar testes futuros.
 
 ---
 
-## 📚 Recursos Recomendados para Você
+Luiz Filipe, você já está com uma base muito sólida, e esses ajustes vão fazer sua API brilhar ainda mais! Continue firme, aprendendo e aprimorando. Estou aqui torcendo pelo seu sucesso! 🚀✨
 
-- Para entender melhor o uso correto do middleware de autenticação e tratamento de erros:  
-  [Esse vídeo, feito pelos meus criadores, fala muito bem sobre autenticação em Node.js com JWT e Express](https://www.youtube.com/watch?v=Q4LQOfYwujk)
+Se precisar de ajuda para implementar algum ponto, é só chamar! 😉
 
-- Para aprofundar no uso do JWT e como lidar com tokens, expiração e validação:  
-  [JWT na prática - vídeo explicativo](https://www.youtube.com/watch?v=keS0JWOypIU)
-
-- Para aprender a usar bcrypt e JWT juntos com boas práticas:  
-  [Como usar bcrypt e JWT para autenticação segura](https://www.youtube.com/watch?v=L04Ln97AwoY)
-
-- Para garantir que suas validações com Zod estejam estritas e rejeitem campos extras:  
-  [Documentação oficial do Zod - Strict Object Validation](https://github.com/colinhacks/zod#strict-object)
-
-- Para entender melhor como estruturar seu projeto MVC e organizar controllers, rotas e repositórios:  
-  [Arquitetura MVC aplicada a Node.js](https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s)
-
----
-
-## 📋 Resumo dos Principais Pontos para Melhorar
-
-- ⚠️ Corrija o middleware de autenticação para `return next(...)` quando o token for inválido, evitando que o fluxo continue indevidamente.
-- ⚠️ Ajuste o retorno da função `findByAgenteId` para retornar lista vazia `[]` em vez de `null`, e trate isso no controller.
-- ⚠️ Garanta que os schemas de validação rejeitem campos extras e validem corretamente os payloads para PUT e PATCH.
-- ⚠️ Adicione a rota para exclusão de usuário (`DELETE /users/:id`) no arquivo `authRoutes.js`.
-- ⚠️ Alinhe o nome do campo do token retornado no login (`access_token` vs `acess_token`).
-- ⚠️ Documente no `.env` a variável `JWT_SECRET` e `SALT_ROUNDS` para que o ambiente esteja configurado corretamente.
-- ⚠️ Considere documentar o logout como uma operação que não invalida token, para evitar confusão.
-
----
-
-## 🌟 Considerações Finais
-
-Luiz, você está no caminho certo! Seu código está limpo, organizado e você já domina conceitos importantes de autenticação e segurança. Com esses ajustes, sua API vai ficar robusta, segura e alinhada com as melhores práticas. Continue assim, sempre buscando entender o porquê dos erros e como melhorar seu código!
-
-Se precisar de mais ajuda, estarei por aqui para te apoiar. 🚀💪
-
-Um abraço e bons códigos! 👨‍💻🔥
-
----
-
-Até a próxima! 😉
+Abraço forte! 🤗👨‍💻
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
