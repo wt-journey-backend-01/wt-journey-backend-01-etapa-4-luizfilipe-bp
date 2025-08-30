@@ -1,167 +1,250 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 4 créditos restantes para usar o sistema de feedback AI.
+Você tem 9 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para luizfilipe-bp:
 
-Nota final: **76.0/100**
+Nota final: **98.4/100**
 
-# Feedback para Luiz Filipe - Evoluindo sua API com Segurança e Autenticação 🚓🔐
+Olá, Luiz Filipe! 🚓✨
 
-Olá, Luiz! Tudo bem? Primeiro, quero parabenizá-lo pelo empenho e pela qualidade do seu código! 🎉 Você estruturou muito bem o projeto, organizou as pastas e arquivos conforme o esperado, e implementou corretamente a parte de autenticação com JWT e hashing de senhas. Isso é fundamental para uma aplicação segura e profissional, e você mandou muito bem nessa parte. 👏
+Primeiramente, parabéns pelo seu esforço e dedicação nesse desafio complexo de API REST com Node.js, Express e PostgreSQL! 🎉 Sua nota final de **98.4/100** é um baita reconhecimento do seu trabalho, e isso mostra que você está no caminho certo para ser um desenvolvedor backend muito competente! 👏
 
-Além disso, você conseguiu entregar várias funcionalidades bônus importantes, como:
-
-- Implementação dos endpoints de logout e exclusão de usuários.
-- Validações robustas para criação de usuários (senha forte, email único).
-- Uso correto do middleware de autenticação para proteger as rotas.
-- Documentação clara no `INSTRUCTIONS.md` explicando o fluxo de autenticação e exemplos de uso do token JWT.
-
-Essas conquistas mostram que você está no caminho certo para construir APIs seguras e escaláveis. Continue assim! 🚀
+Além disso, você conseguiu implementar vários bônus importantes, como o endpoint `/usuarios/me` para retornar os dados do usuário autenticado e filtros avançados para agentes e casos — isso demonstra um cuidado extra com a experiência do usuário e a segurança da aplicação. Muito bom! 🌟
 
 ---
 
-## Pontos que precisam de ajuste para destravar 100% da API
+## 🚀 Pontos Fortes que Merecem Destaque
 
-### 1. Falhas nas operações com agentes e casos (CRUD e listagens)
+- Seu código está muito bem organizado, seguindo a arquitetura MVC com pastas separadas para controllers, repositories, rotas e middlewares. Isso facilita muito a manutenção e escalabilidade do projeto.
+- A autenticação via JWT está implementada corretamente, com geração do token no login e middleware para proteger as rotas sensíveis.
+- O uso de bcrypt para hash das senhas está correto, incluindo o uso de salt rounds configurável.
+- Você documentou muito bem o processo no arquivo `INSTRUCTIONS.md`, incluindo exemplos claros de uso dos endpoints de registro, login e envio do token no header Authorization.
+- As mensagens de erro personalizadas e o uso do `ApiError` para tratamento consistente tornam a API mais amigável e robusta.
+- Todos os testes base relacionados a usuários, agentes e casos passaram, o que indica que a maior parte da funcionalidade está funcionando perfeitamente.
 
-Você implementou os controllers, repositórios e rotas dos agentes e casos muito bem, com tratamento de erros personalizado e uso do middleware de autenticação. Porém, percebi que alguns testes relacionados às operações com agentes e casos falharam, indicando que alguns comportamentos ainda precisam ser refinados.
+---
 
-Vamos analisar alguns pontos importantes:
+## ⚠️ Testes que Falharam e Análise Profunda
 
-#### a) Validação dos payloads para PUT e PATCH de agentes e casos
+### Teste com Falha:
+- **AGENTS: Recebe status code 401 ao tentar buscar agente corretamente mas sem header de autorização com token JWT**
 
-Você está utilizando schemas de validação com `zod` e o middleware `validateSchema`, o que é ótimo. Porém, os testes indicam que quando o payload está em formato incorreto (exemplo: campos faltando ou extras), o sistema deveria responder com **status 400**.
+---
 
-No seu código, nas funções `putAgente`, `patchAgente`, `updateCaso` e `patchCaso`, não vi um tratamento explícito para rejeitar payloads inválidos além da validação do middleware. Isso pode estar acontecendo porque:
+### Análise do Problema:
 
-- O middleware `validateSchema` pode não estar sendo aplicado corretamente em todos os endpoints.
-- Ou o schema pode não estar cobrindo todos os casos de validação necessários (exemplo: campos extras, campos obrigatórios faltando).
+Esse teste espera que qualquer requisição para buscar agentes (por exemplo, `GET /agentes` ou `GET /agentes/:id`) sem o header `Authorization` contendo um token JWT válido retorne **status 401 Unauthorized**.
 
-**Recomendo revisar os schemas em `utils/agentesSchema.js` e `utils/casosSchema.js` para garantir que:**
-
-- Campos obrigatórios estejam marcados como `.nonempty()`.
-- Campos extras sejam rejeitados (`strict()`).
-- No caso do PATCH, ao menos um campo válido deve ser enviado.
-
-Exemplo de schema estrito com zod para PATCH (atualização parcial):
+No seu código, você está usando o middleware `authenticateToken` para proteger as rotas de agentes, como podemos ver em `routes/agentesRoutes.js`:
 
 ```js
-const patchAgenteSchema = z.object({
-  nome: z.string().optional(),
-  dataDeIncorporacao: z.string().optional(),
-  cargo: z.string().optional(),
-}).refine(data => Object.keys(data).length > 0, {
-  message: 'Deve haver pelo menos um campo para atualização',
-}).strict();
+router.get('/', authenticateToken, agentesController.getAllAgentes);
+router.get('/:id', authenticateToken, validateIDParam, agentesController.getAgenteById);
+// ... outras rotas protegidas também ...
 ```
 
-Se ainda não estiver usando `.strict()`, isso pode permitir campos extras, o que causa falhas nos testes.
-
----
-
-#### b) Tratamento do ID inválido e inexistente em rotas de agentes e casos
-
-Vi que você tem funções auxiliares como `getAgenteOrThrowApiError` e `getCasoOrThrowApiError` que lançam erros 404 quando o registro não existe. Isso está correto!
-
-Porém, os testes também esperam que IDs inválidos (exemplo: string não numérica) sejam tratados com erro 404 ou 400. Para isso, é importante usar um middleware que valide o parâmetro `:id` antes de executar o controller.
-
-Você já tem um middleware `validateIDParam` aplicado nas rotas, o que é ótimo! Mas certifique-se que ele:
-
-- Valida se o `id` é um número inteiro positivo.
-- Em caso de inválido, retorna erro 404 ou 400 conforme o esperado.
-
-Se o middleware não estiver funcionando corretamente, as requisições com ID inválido podem causar erros inesperados.
-
----
-
-#### c) Resposta dos endpoints de login e registro
-
-No seu `authController.js`, o endpoint `/auth/login` retorna o token JWT dentro de um objeto `{ access_token: token }`, que está correto.
-
-Mas notei que no `INSTRUCTIONS.md` você menciona o campo `acess_token` (com "s" a menos). Atenção para manter a consistência: o correto é `access_token` (com dois "c").
-
-No seu código:
+E o middleware `authenticateToken` está assim:
 
 ```js
-return res.status(200).json({ access_token: token });
-```
+async function authenticateToken(req, res, next) {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
 
-No seu README:
+    if (!token) {
+        return next(
+            new ApiError(401, 'Token não fornecido', {
+                token: 'O token de autenticação é necessário',
+            })
+        );
+    }
 
-```json
-{
-  "acess_token": "jwt_gerado_aqui"
+    try {
+        const user = jwt.verify(token, secret);
+        req.user = user;
+        next();
+    } catch (err) {
+        return next(new ApiError(401, 'Token inválido ou expirado'));
+    }
 }
 ```
 
-Essa pequena diferença pode causar confusão para quem consome a API e também falhas em testes automatizados.
+**Até aqui, tudo parece correto.**
 
 ---
 
-### 2. Estrutura dos diretórios e arquivos
+### Por que o teste está falhando?
 
-Sua estrutura está muito próxima do esperado, o que é excelente! Só um ponto para reforçar:
+O ponto crucial aqui é: o teste espera um status code 401, mas a descrição do teste indica que ele não está recebendo esse status, ou seja, a resposta pode estar vindo com outro código ou com um comportamento inesperado.
 
-- O arquivo `utils/errorHandler.js` está presente e aplicado no `server.js`, isso é ótimo para capturar erros globais.
-- Certifique-se que todos os novos arquivos (`authRoutes.js`, `authController.js`, `usuariosRepository.js`, `authMiddleware.js`) estejam exportando e importando corretamente.
+Uma possibilidade comum para esse tipo de falha é que o middleware de autenticação não está sendo corretamente chamado ou o erro lançado não está sendo tratado para enviar a resposta com status 401.
 
----
-
-### 3. Middleware de autenticação
-
-Seu middleware `authenticateToken` está muito bem implementado, com verificação do header `Authorization` e validação do JWT.
-
-Uma dica para melhorar a legibilidade e evitar código duplicado:
+No seu `server.js`, você adicionou o middleware global de tratamento de erros:
 
 ```js
-const authHeader = req.headers.authorization;
-if (!authHeader || !authHeader.startsWith('Bearer ')) {
-  return next(new ApiError(401, 'Token não fornecido', {
+const errorHandler = require('./utils/errorHandler');
+app.use(errorHandler);
+```
+
+Mas não vimos o código do `errorHandler.js`. Se o seu middleware de erro não estiver configurado para capturar o erro `ApiError` e enviar a resposta correta com o status e a mensagem, o Express pode estar retornando um status default (como 500) ou mesmo deixando a requisição pendente.
+
+---
+
+### Verificação rápida que você deve fazer:
+
+1. **Confirme se o middleware `errorHandler` está assim (exemplo básico):**
+
+```js
+function errorHandler(err, req, res, next) {
+    if (err.isApiError) {
+        return res.status(err.statusCode).json({
+            message: err.message,
+            details: err.details,
+        });
+    }
+
+    console.error(err);
+    res.status(500).json({
+        message: 'Erro interno do servidor',
+    });
+}
+
+module.exports = errorHandler;
+```
+
+2. **Confirme que o seu `ApiError` define a propriedade `isApiError` para ser reconhecida no middleware:**
+
+```js
+class ApiError extends Error {
+    constructor(statusCode, message, details) {
+        super(message);
+        this.statusCode = statusCode;
+        this.details = details;
+        this.isApiError = true;
+    }
+}
+```
+
+Se o seu `errorHandler` não está tratando o erro corretamente, o Express não vai enviar o status 401 esperado.
+
+---
+
+### Outra possibilidade:
+
+Você está usando Express 5 (`"express": "^5.1.0"` no package.json). O Express 5 mudou a forma de lidar com middlewares assíncronos e erros. Certifique-se de que o middleware `authenticateToken` está passando o erro para o próximo middleware corretamente.
+
+No seu middleware `authenticateToken`, você faz:
+
+```js
+return next(new ApiError(401, 'Token não fornecido', {
     token: 'O token de autenticação é necessário',
-  }));
-}
-
-const token = authHeader.split(' ')[1];
+}));
 ```
 
-Assim você garante que o header esteja no formato correto.
+Isso está correto para Express 4 e 5. Porém, se o seu middleware `errorHandler` não estiver configurado para lidar com erros assíncronos, pode haver problema.
 
 ---
 
-### 4. Migration da tabela `usuarios`
+### Como testar e corrigir?
 
-Sua migration para criar a tabela `usuarios` está correta e simples, o que é ótimo para garantir a estrutura do banco.
+- Faça um teste manual: faça uma requisição para `GET /agentes` sem o header `Authorization` e veja qual resposta e status você recebe.
+- Se não for 401, revise seu middleware de erro.
+- Garanta que o middleware de erro está registrado **depois** de todas as rotas no `server.js` (o que você já fez, parabéns).
+- Garanta que o middleware `errorHandler` tem a assinatura correta de middleware de erro do Express:
 
-Só um ponto: a validação da senha forte (mínimo 8 caracteres, letras maiúsculas, minúsculas, números e caractere especial) deve ser feita na camada da API (validação do payload), pois o banco só armazena a senha hasheada.
-
----
-
-## Recomendações de aprendizado 📚
-
-Para ajudar você a consolidar esses pontos, recomendo fortemente assistir esses vídeos que vão ajudar muito:
-
-- [Autenticação JWT na prática](https://www.youtube.com/watch?v=keS0JWOypIU) — Esse vídeo, feito pelos meus criadores, explica muito bem como gerar, validar e usar tokens JWT, além de mostrar boas práticas.
-- [Hashing de senhas com bcrypt e segurança](https://www.youtube.com/watch?v=L04Ln97AwoY) — Também feito pelos meus criadores, esse vídeo aborda o uso correto do bcrypt para proteger senhas, exatamente como você está fazendo.
-- [Validação de dados com Zod e boas práticas](https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s) — Para entender melhor como criar schemas robustos e evitar dados inválidos na API.
-- [Knex.js - Guia para migrations e queries](https://www.youtube.com/watch?v=GLwHSs7t3Ns&t=4s) — Para aprimorar seu conhecimento em manipulação do banco com Knex.
+```js
+function errorHandler(err, req, res, next) {
+    // tratamento...
+}
+```
 
 ---
 
-## Resumo rápido dos pontos para focar 🔍
+## 🎯 Dica para melhorar e garantir que o erro 401 seja retornado corretamente
 
-- [ ] **Reforce a validação dos payloads** para PUT e PATCH usando schemas estritos e garantindo rejeição de campos extras ou faltantes.
-- [ ] **Valide corretamente o parâmetro `id`** nas rotas para tratar IDs inválidos com erro 400 ou 404.
-- [ ] **Corrija a inconsistência do nome do campo do token JWT** entre o código (`access_token`) e a documentação (`acess_token`).
-- [ ] **Garanta que o middleware de autenticação valide o header Authorization** no formato correto.
-- [ ] Continue mantendo a estrutura do projeto organizada conforme o padrão esperado.
-- [ ] Considere implementar o endpoint `/usuarios/me` para retornar dados do usuário autenticado como um bônus.
+Aqui está um exemplo simples para seu middleware de erro, que você pode comparar com o seu:
+
+```js
+// utils/errorHandler.js
+function errorHandler(err, req, res, next) {
+    if (err.isApiError) {
+        return res.status(err.statusCode).json({
+            message: err.message,
+            details: err.details || null,
+        });
+    }
+    console.error(err);
+    res.status(500).json({ message: 'Erro interno do servidor' });
+}
+
+module.exports = errorHandler;
+```
+
+E seu `ApiError.js` deve garantir a propriedade `isApiError`:
+
+```js
+class ApiError extends Error {
+    constructor(statusCode, message, details) {
+        super(message);
+        this.statusCode = statusCode;
+        this.details = details;
+        this.isApiError = true;
+    }
+}
+
+module.exports = ApiError;
+```
 
 ---
 
-Luiz, você está muito próximo de entregar uma API realmente profissional e segura! Continue assim, focando nessas melhorias, e seu código vai ficar redondinho. Se precisar de ajuda para entender algum ponto, só chamar! Estou aqui para ajudar você a crescer cada vez mais como desenvolvedor. 💪🚀
+## 📚 Recursos recomendados para esse ponto:
 
-Abraço forte e até a próxima revisão! 👋😊
+- Sobre autenticação e middleware de autenticação: https://www.youtube.com/watch?v=Q4LQOfYwujk (Esse vídeo, feito pelos meus criadores, fala muito bem sobre os conceitos básicos de autenticação e como proteger rotas com JWT)
+- Para entender melhor o middleware de tratamento de erros no Express e garantir que o status correto seja enviado: https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s (Esse vídeo ajuda a entender a arquitetura MVC e organização do código, incluindo middlewares)
+- Sobre JWT e bcrypt na prática: https://www.youtube.com/watch?v=L04Ln97AwoY (Esse vídeo aborda o uso prático de JWT e hashing de senha com bcrypt)
+
+---
+
+## ✅ Outras observações importantes
+
+- Sua estrutura de pastas está perfeita e segue exatamente o que foi pedido, incluindo os arquivos novos para autenticação (`authRoutes.js`, `authController.js`, `usuariosRepository.js`, `authMiddleware.js`).
+- O arquivo `.env` e o uso das variáveis (`JWT_SECRET`, `SALT_ROUNDS`) estão corretos e você não deixou segredos hardcoded no código, o que é uma ótima prática de segurança.
+- A documentação no `INSTRUCTIONS.md` está clara e completa, facilitando o uso da API por outros desenvolvedores ou equipes.
+
+---
+
+## 🎉 Conquistas Bônus que você entregou com excelência:
+
+- Endpoint `/usuarios/me` para retornar dados do usuário autenticado.
+- Filtros avançados para agentes e casos, incluindo ordenação por data de incorporação.
+- Mensagens de erro customizadas para parâmetros inválidos.
+- Logout implementado corretamente.
+  
+Isso mostra que você não só entregou o básico, mas foi além para garantir uma aplicação robusta e amigável!
+
+---
+
+## 📝 Resumo dos principais pontos para focar e corrigir:
+
+- [ ] **Middleware de erro:** Verifique se seu middleware `errorHandler.js` está implementado corretamente para capturar `ApiError` e enviar o status code e mensagem apropriados.
+- [ ] **Teste manual:** Faça requisições sem o token JWT para rotas protegidas e confira se o status 401 está sendo retornado.
+- [ ] **Express 5 e async:** Garanta que o middleware `authenticateToken` e o `errorHandler` estão compatíveis com o Express 5, tratando erros assíncronos corretamente.
+- [ ] **Confirmação do `ApiError`:** Certifique-se que sua classe `ApiError` define a propriedade `isApiError` para facilitar o reconhecimento no middleware de erro.
+- [ ] **Revisar logs:** Caso o erro persista, adicione logs no middleware para entender o fluxo e onde o erro está sendo perdido.
+
+---
+
+Luiz, você está muito próximo da perfeição! Só esses pequenos ajustes para garantir que o tratamento de erro funcione como esperado nas rotas protegidas e o status 401 seja retornado corretamente. Continue assim, com essa organização e atenção aos detalhes. Você está construindo uma base sólida para projetos profissionais! 🚀
+
+Se precisar de ajuda para entender melhor os conceitos de autenticação, middleware ou tratamento de erros, não hesite em assistir aos vídeos que indiquei — eles são muito didáticos e vão te ajudar a destravar essas dúvidas.
+
+Parabéns mais uma vez e conte comigo para seguir evoluindo! 💪🔥
+
+Um abraço forte e bons códigos! 👨‍💻👩‍💻
+
+---
+
+Se quiser, posso ajudar a revisar seu middleware de erro ou qualquer outro trecho específico. É só pedir!
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
