@@ -18,21 +18,24 @@ async function register(req, res) {
     const hashedPassword = await bcrypt.hash(user.senha, salt);
 
     user.senha = hashedPassword;
-    const createdUser = await usuariosRepository.create(user);
-    res.status(201).json(createdUser);
+    const createdUsuario = await usuariosRepository.create(user);
+
+    delete createdUsuario.id;
+    delete createdUsuario.senha;
+    res.status(201).json(createdUsuario);
 }
 
 async function login(req, res) {
     const user = req.body;
 
-    const existingUser = await usuariosRepository.findUserByEmail(user.email);
-    if (!existingUser) {
+    const existingUsuario = await usuariosRepository.findUserByEmail(user.email);
+    if (!existingUsuario) {
         throw new ApiError(404, 'Usuário não encontrado', {
             email: 'Não foi encontrado um usuário com este email',
         });
     }
 
-    const isPasswordValid = await bcrypt.compare(user.senha, existingUser.senha);
+    const isPasswordValid = await bcrypt.compare(user.senha, existingUsuario.senha);
     if (!isPasswordValid) {
         throw new ApiError(401, 'Credenciais inválidas', {
             senha: 'Senha incorreta',
@@ -40,7 +43,7 @@ async function login(req, res) {
     }
 
     const token = jwt.sign(
-        { id: existingUser.id, nome: existingUser.nome, email: existingUser.email },
+        { id: existingUsuario.id, nome: existingUsuario.nome, email: existingUsuario.email },
         secret,
         {
             expiresIn: '1h',
@@ -51,23 +54,11 @@ async function login(req, res) {
 }
 
 async function logout(req, res) {
-    return res.status(204).send();
-}
-
-async function deleteUser(req, res) {
-    const id = req.params.id;
-
-    const deletedUser = await usuariosRepository.remove(id);
-    if (!deletedUser) {
-        throw new ApiError(404, 'Não foi possível deletar o usuário');
-    }
-
-    return res.status(204).send();
+    return res.status(204).json();
 }
 
 module.exports = {
     register,
     login,
     logout,
-    deleteUser,
 };

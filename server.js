@@ -7,6 +7,9 @@ app.use(express.json());
 const authRouter = require('./routes/authRoutes');
 app.use('/auth', authRouter);
 
+const usuariosRouter = require('./routes/usuariosRoutes');
+app.use('/usuarios', usuariosRouter);
+
 const casosRouter = require('./routes/casosRoutes');
 app.use('/casos', casosRouter);
 
