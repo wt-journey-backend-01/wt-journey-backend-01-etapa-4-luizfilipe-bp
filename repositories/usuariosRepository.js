@@ -3,8 +3,8 @@ const ApiError = require('../utils/ApiError');
 
 async function create(user) {
     try {
-        const [createdUser] = await db('usuarios').insert(user, ['*']);
-        return createdUser;
+        const [createdUsuario] = await db('usuarios').insert(user, ['*']);
+        return createdUsuario;
     } catch (err) {
         throw new ApiError(500, 'Não foi possível cadastrar o usuário');
     }
@@ -12,20 +12,32 @@ async function create(user) {
 
 async function findUserByEmail(email) {
     try {
-        const user = await db('usuarios').where({ email: email }).first();
-        if (!user) {
+        const usuario = await db('usuarios').where({ email: email }).first();
+        if (!usuario) {
             return null;
         }
-        return user;
+        return usuario;
     } catch (err) {
         throw new ApiError(500, 'Não foi possível encontrar o usuário pelo seu email');
     }
 }
 
+async function findById(id) {
+    try {
+        const usuario = await db('usuarios').where({ id: id }).first();
+        if (!usuario) {
+            return null;
+        }
+        return usuario;
+    } catch (err) {
+        throw new ApiError(500, 'Não foi possível encontrar o usuário pelo seu ID');
+    }
+}
+
 async function remove(id) {
     try {
-        const deletedUser = await db('usuarios').where({ id: id }).del();
-        return deletedUser > 0;
+        const deletedUsuario = await db('usuarios').where({ id: id }).del();
+        return deletedUsuario > 0;
     } catch {
         throw new ApiError(500, 'Não foi possível deletar o usuário');
     }
@@ -35,4 +47,5 @@ module.exports = {
     create,
     remove,
     findUserByEmail,
+    findById,
 };
