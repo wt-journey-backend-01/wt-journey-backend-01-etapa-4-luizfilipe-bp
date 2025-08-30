@@ -9,7 +9,6 @@ async function getMe(req, res) {
         throw new ApiError(404, 'Usuário não encontrado');
     }
 
-    delete usuario.id;
     delete usuario.senha;
     return res.json(usuario);
 }
