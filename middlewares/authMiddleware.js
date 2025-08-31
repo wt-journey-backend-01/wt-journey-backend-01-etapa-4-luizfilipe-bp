@@ -15,17 +15,17 @@ function authenticateToken(req, res, next) {
         );
     }
 
-    try {
-        const user = jwt.verify(token, secret);
+    jwt.verify(token, secret, (err, user) => {
+        if (err) {
+            return next(
+                new ApiError(401, 'Token inválido ou expirado', {
+                    token: 'O token de autenticação é inválido ou expirou',
+                })
+            );
+        }
         req.user = user;
         next();
-    } catch (err) {
-        return next(
-            new ApiError(401, 'Token inválido ou expirado', {
-                token: 'O token de autenticação é inválido ou expirou',
-            })
-        );
-    }
+    });
 }
 
 module.exports = { authenticateToken };
