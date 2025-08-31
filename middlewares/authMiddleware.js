@@ -8,7 +8,7 @@ function authenticateToken(req, res, next) {
     const token = authHeader && authHeader.split(' ')[1];
 
     if (!token) {
-        next(
+        return next(
             new ApiError(401, 'Token não fornecido', {
                 token: 'O token de autenticação é necessário',
             })
@@ -20,7 +20,7 @@ function authenticateToken(req, res, next) {
         req.user = user;
         next();
     } catch (err) {
-        next(
+        return next(
             new ApiError(401, 'Token inválido ou expirado', {
                 token: 'O token de autenticação é inválido ou expirou',
             })
