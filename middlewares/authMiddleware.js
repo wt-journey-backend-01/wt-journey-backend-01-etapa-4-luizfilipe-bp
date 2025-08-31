@@ -4,28 +4,32 @@ const ApiError = require('../utils/ApiError');
 const secret = process.env.JWT_SECRET || 'secret';
 
 function authenticateToken(req, res, next) {
-    const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.split(' ')[1];
+    try {
+        const authHeader = req.headers.authorization;
+        const token = authHeader && authHeader.split(' ')[1];
 
-    if (!token) {
-        return next(
-            new ApiError(401, 'Token não fornecido', {
-                token: 'O token de autenticação é necessário',
-            })
-        );
-    }
-
-    jwt.verify(token, secret, (err, user) => {
-        if (err) {
+        if (!token) {
             return next(
-                new ApiError(401, 'Token inválido ou expirado', {
-                    token: 'O token de autenticação é inválido ou expirou',
+                new ApiError(401, 'Token não fornecido', {
+                    token: 'O token de autenticação é necessário',
                 })
             );
         }
-        req.user = user;
-        next();
-    });
+
+        jwt.verify(token, secret, (err, user) => {
+            if (err) {
+                return next(
+                    new ApiError(401, 'Token inválido ou expirado', {
+                        token: 'O token de autenticação é inválido ou expirou',
+                    })
+                );
+            }
+            req.user = user;
+            next();
+        });
+    } catch (error) {
+        return next(new ApiError(401, 'Erro na validação do token'));
+    }
 }
 
 module.exports = { authenticateToken };
