@@ -14,7 +14,21 @@ const casosRouter = require('./routes/casosRoutes');
 app.use('/casos', casosRouter);
 
 const agentesRouter = require('./routes/agentesRoutes');
-app.use('/agentes', agentesRouter);
+app.use('/agentes', agentesRouter, (req, res) => {
+    console.log(
+        'req info: ',
+        req.method,
+        req.body,
+        req.originalUrl,
+        res.statusCode,
+        `auth: ${req.headers.authorization}`
+    );
+    res.on('finish', () => {
+        console.log(
+            `res info: ${res.statusCode}, ${req.method} ${req.originalUrl}, ${req.headers.authorization}`
+        );
+    });
+});
 
 const swaggerDocs = require('./docs/swagger.json');
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
