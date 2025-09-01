@@ -1,6 +1,6 @@
 <sup>Esse é um feedback gerado por IA, ele pode conter erros.</sup>
 
-Você tem 4 créditos restantes para usar o sistema de feedback AI.
+Você tem 3 créditos restantes para usar o sistema de feedback AI.
 
 # Feedback para luizfilipe-bp:
 
@@ -8,26 +8,48 @@ Nota final: **98.4/100**
 
 Olá, Luiz Filipe! 👋🚀
 
-Antes de tudo, parabéns pelo seu esforço e pelo excelente resultado geral: **98.4/100**! 🎉 Isso mostra que você está no caminho certo e entregou uma aplicação robusta, organizada e funcional. Você implementou com sucesso funcionalidades importantes, como o registro, login, logout e exclusão de usuários, proteção das rotas com JWT, além da documentação clara no INSTRUCTIONS.md. Também mandou muito bem nos testes bônus, como o endpoint `/usuarios/me` e as filtragens complexas! Isso é um baita diferencial. 👏👏
+Primeiramente, parabéns pelo trabalho incrível que você fez até aqui! 🎉 Sua nota final de 98.4/100 é um reflexo claro do seu esforço e dedicação. Você implementou muito bem a autenticação com JWT, o hash das senhas com bcrypt, e até cuidou da segurança protegendo as rotas essenciais. Além disso, você conseguiu entregar vários bônus, como a filtragem avançada dos casos, o endpoint `/usuarios/me` para retornar os dados do usuário logado, e mensagens de erro customizadas — tudo isso mostra um excelente domínio do tema! 👏👏
 
 ---
 
-## Vamos falar sobre o teste que falhou
+### 🎯 O que funcionou muito bem:
 
-### Teste que falhou:  
-`AGENTS: Recebe status code 401 ao tentar buscar agente corretamente mas sem header de autorização com token JWT`
+- Registro, login, logout e exclusão de usuários funcionando com os status codes corretos.
+- Hashing das senhas usando bcrypt com salt rounds configuráveis.
+- Geração de tokens JWT válidos com expiração.
+- Middleware de autenticação (`authenticateToken`) aplicado corretamente nas rotas sensíveis.
+- Organização do projeto seguindo a arquitetura MVC, com pastas bem definidas (`controllers`, `repositories`, `routes`, `middlewares`, etc).
+- Documentação clara no `INSTRUCTIONS.md` explicando o fluxo de autenticação e uso do JWT.
+- Implementação dos filtros e buscas nos endpoints de agentes e casos.
+- Tratamento de erros com mensagens customizadas usando `ApiError`.
+
+Você está no caminho certo para construir APIs robustas e seguras! 🚀
 
 ---
 
-### O que esse teste significa?
+### ⚠️ Análise do teste que falhou:
 
-Esse teste espera que, se você tentar acessar uma rota protegida (como buscar agentes) **sem enviar o token JWT no header Authorization**, a API responda com status **401 Unauthorized**. Ou seja: o sistema deve negar o acesso quando o token não for informado.
+> **Teste que falhou:**  
+> `AGENTS: Recebe status code 401 ao tentar buscar agente corretamente mas sem header de autorização com token JWT`
+
+Esse teste indica que, ao fazer uma requisição para buscar agentes **sem enviar o token JWT no header `Authorization`**, a API deveria responder com **401 Unauthorized**. Isso é fundamental para garantir que somente usuários autenticados possam acessar recursos protegidos.
 
 ---
 
-### Por que esse teste falhou?
+### Investigando o motivo da falha
 
-Analisando seu código, a proteção das rotas está implementada corretamente com o middleware `authenticateToken`:
+Vamos analisar seu código para entender por que o teste falhou.
+
+No arquivo `routes/agentesRoutes.js`, você aplicou o middleware `authenticateToken` em todas as rotas de agentes, o que está correto:
+
+```js
+router.get('/:id/casos', authenticateToken, validateIDParam, agentesController.getCasosByAgente);
+router.get('/', authenticateToken, agentesController.getAllAgentes);
+router.get('/:id', authenticateToken, validateIDParam, agentesController.getAgenteById);
+// ... demais rotas também com authenticateToken
+```
+
+No middleware `authMiddleware.js`, seu código para validação do token também parece correto:
 
 ```js
 function authenticateToken(req, res, next) {
@@ -60,195 +82,138 @@ function authenticateToken(req, res, next) {
 }
 ```
 
-E as rotas de agentes estão protegidas com esse middleware:
-
-```js
-router.get('/', authenticateToken, agentesController.getAllAgentes);
-```
-
-Então, aparentemente está tudo certo.
+Tudo parece estar no lugar para que, ao não enviar o token, o middleware lance um erro 401.
 
 ---
 
-### Mas por que o teste reclama?
+### Mas então, por que o teste falhou?
 
-O motivo mais provável é que **quando o token não é enviado, seu middleware está chamando `next()` com o erro, mas o seu tratamento global de erros não está retornando o status 401 corretamente para o cliente**. Ou seja, o erro está sendo passado adiante, mas o cliente não está recebendo o status HTTP correto.
-
-No seu `server.js`, você tem:
+O problema está no arquivo `server.js`, onde você monta as rotas. Observe a linha que registra o router de agentes:
 
 ```js
-const errorHandler = require('./utils/errorHandler');
-app.use(errorHandler);
+app.use('/agentes', agentesRouter, (req, res) => {
+    console.log(
+        'req info: ',
+        req.method,
+        req.body,
+        req.originalUrl,
+        res.statusCode,
+        `auth: ${req.headers.authorization}`
+    );
+    res.on('finish', () => {
+        console.log(
+            `res info: ${res.statusCode}, ${req.method} ${req.originalUrl}, ${req.headers.authorization}`
+        );
+    });
+});
 ```
 
-O que precisamos verificar é se o seu `errorHandler.js` está configurado para receber instâncias de `ApiError` e responder com o status e mensagem corretos.
+Aqui, você está passando um **callback extra** como terceiro argumento para `app.use()` logo após o `agentesRouter`. Isso faz com que, para toda requisição que começa com `/agentes`, além do roteador, esse middleware extra seja executado.
 
-Se o `errorHandler` não estiver configurado para enviar o status 401 e a mensagem do erro, o cliente pode estar recebendo um status 200 ou outro status padrão, fazendo o teste falhar.
+O problema é que esse middleware extra está **sempre respondendo à requisição** (ou pelo menos interferindo no fluxo), e isso pode estar **atravancando a propagação dos erros lançados pelo middleware `authenticateToken` dentro do `agentesRouter`**.
+
+Na prática, quando o token está ausente, o `authenticateToken` chama `next()` com um erro, mas seu middleware extra logo depois pode estar consumindo ou ignorando esse erro, fazendo com que o cliente não receba o status 401 esperado.
 
 ---
 
 ### Como corrigir?
 
-Verifique seu arquivo `utils/errorHandler.js` (que não foi enviado no código) para garantir que ele faça algo parecido com isso:
+Remova esse terceiro argumento na linha do `app.use('/agentes', ...)`. Ou seja, deixe assim:
 
 ```js
-function errorHandler(err, req, res, next) {
-    if (err.isApiError) {
-        return res.status(err.statusCode).json({
-            error: err.message,
-            details: err.details || null,
-        });
-    }
-    console.error(err);
-    res.status(500).json({ error: 'Erro interno do servidor' });
-}
-
-module.exports = errorHandler;
+app.use('/agentes', agentesRouter);
 ```
 
-E na sua classe `ApiError`, garanta que você tenha uma propriedade que identifique o erro, por exemplo:
+Se você quiser manter os logs, crie um middleware separado para logging e use-o explicitamente, por exemplo:
 
 ```js
-class ApiError extends Error {
-    constructor(statusCode, message, details) {
-        super(message);
-        this.statusCode = statusCode;
-        this.details = details;
-        this.isApiError = true;
-    }
+function logRequests(req, res, next) {
+    console.log(
+        'req info: ',
+        req.method,
+        req.body,
+        req.originalUrl,
+        res.statusCode,
+        `auth: ${req.headers.authorization}`
+    );
+    res.on('finish', () => {
+        console.log(
+            `res info: ${res.statusCode}, ${req.method} ${req.originalUrl}, ${req.headers.authorization}`
+        );
+    });
+    next();
 }
+
+app.use('/agentes', logRequests, agentesRouter);
 ```
 
-Isso é importante para que o `errorHandler` saiba que deve usar o `statusCode` da exceção para responder.
+Assim, o fluxo de middlewares fica claro e o tratamento de erro funciona corretamente.
 
 ---
 
-### Outra possibilidade: header Authorization enviado com formato incorreto
+### Por que isso aconteceu?
 
-Outro motivo comum para o erro 401 não ser disparado corretamente é o formato do header `Authorization`. Seu middleware espera o formato:
+O método `app.use()` espera dois argumentos principais: a rota e o middleware (ou router). Se você passar um terceiro argumento, ele será tratado como mais um middleware, mas a ordem e o modo como eles são executados pode causar efeitos colaterais inesperados.
 
-```
-Authorization: Bearer <token>
-```
-
-Se o cliente enviar o header de forma incorreta, por exemplo:
-
-```
-Authorization: <token>
-```
-
-Ou com outra palavra no lugar de "Bearer", o token será `undefined` e o erro será disparado.
+No seu caso, esse middleware extra está interferindo na cadeia de middlewares, impedindo que o erro 401 seja corretamente propagado e entregue ao cliente.
 
 ---
 
-### Resumo do diagnóstico desse erro:
+### Outros pontos que observei:
 
-- O middleware `authenticateToken` está correto, mas o tratamento global de erros pode não estar retornando 401 corretamente para o cliente.
-
-- Ou o header Authorization pode estar vindo com formato inesperado do cliente, e o middleware não está lidando com isso adequadamente.
-
----
-
-### Sugestão de melhoria no middleware para garantir o formato correto:
-
-```js
-function authenticateToken(req, res, next) {
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader) {
-            return next(new ApiError(401, 'Token não fornecido', {
-                token: 'O token de autenticação é necessário',
-            }));
-        }
-
-        const parts = authHeader.split(' ');
-        if (parts.length !== 2 || parts[0] !== 'Bearer') {
-            return next(new ApiError(401, 'Formato do token inválido', {
-                token: 'O header Authorization deve ser no formato: Bearer <token>',
-            }));
-        }
-
-        const token = parts[1];
-
-        jwt.verify(token, secret, (err, user) => {
-            if (err) {
-                return next(new ApiError(401, 'Token inválido ou expirado', {
-                    token: 'O token de autenticação é inválido ou expirou',
-                }));
-            }
-            req.user = user;
-            next();
-        });
-    } catch (error) {
-        return next(new ApiError(401, 'Erro na validação do token'));
-    }
-}
-```
-
-Isso ajuda a garantir que o token seja extraído corretamente e que erros de formato sejam tratados.
+- Seu arquivo `.env` parece estar configurado corretamente para `JWT_SECRET` e `SALT_ROUNDS`, o que é ótimo.
+- Você usou `bcryptjs` em vez do `bcrypt`, o que é uma escolha válida e compatível.
+- O middleware `authenticateToken` está bem implementado, com tratamento correto para token ausente e inválido.
+- A estrutura do projeto está muito bem organizada, com as pastas e arquivos conforme esperado.
 
 ---
 
-## Sobre a estrutura do projeto
+### Recomendação de aprendizado para esse ponto:
 
-Sua estrutura está muito bem organizada e segue o padrão esperado! 👏
+Para entender melhor o fluxo de middlewares no Express e como encadear corretamente, recomendo fortemente assistir a este vídeo, feito pelos meus criadores, que explica muito bem sobre autenticação e middlewares no Node.js/Express:
 
-Você tem as pastas:
+https://www.youtube.com/watch?v=Q4LQOfYwujk
 
-- `db/` com migrations, seeds e db.js  
-- `routes/` com agentesRoutes.js, casosRoutes.js, authRoutes.js  
-- `controllers/` com agentesController.js, casosController.js, authController.js  
-- `repositories/` com agentesRepository.js, casosRepository.js, usuariosRepository.js  
-- `middlewares/` com authMiddleware.js  
-- `utils/` com errorHandler.js e outros arquivos utilitários  
+Além disso, para aprofundar no uso do JWT e bcrypt, este vídeo é excelente:
 
-Tudo isso está alinhado com o que foi solicitado, o que é excelente para manter a escalabilidade e a manutenção do seu código.
+https://www.youtube.com/watch?v=L04Ln97AwoY
+
+E para entender melhor o controle do fluxo de middlewares e erros no Express, recomendo este guia oficial do Express (em inglês, mas muito didático): https://expressjs.com/en/guide/error-handling.html
 
 ---
 
-## Outros pontos positivos que merecem destaque
+### Sobre a estrutura de diretórios
 
-- Você usou o **bcryptjs** para hashing das senhas com salt rounds configurável via `.env` — muito bom!  
-- Implementou o JWT com segredo vindo da variável de ambiente `JWT_SECRET`, evitando expor segredos no código.  
-- Validou esquemas usando Zod, garantindo que os dados de entrada estejam corretos.  
-- Documentou muito bem os passos no `INSTRUCTIONS.md`, com exemplos claros de uso do token JWT no header Authorization.  
-- Tratamento de erros customizado com `ApiError` para respostas mais amigáveis e específicas.  
-- Aplicou proteção em todas as rotas sensíveis com o middleware `authenticateToken`.  
+Sua estrutura está perfeita e segue exatamente o que foi pedido:
 
----
+- `routes/authRoutes.js`, `routes/agentesRoutes.js`, `routes/casosRoutes.js`, `routes/usuariosRoutes.js`
+- `controllers/authController.js`, `agentesController.js`, `casosController.js`
+- `repositories/usuariosRepository.js`, `agentesRepository.js`, `casosRepository.js`
+- `middlewares/authMiddleware.js`
+- `utils/errorHandler.js` e schemas de validação
+- `db/migrations` e `db/seeds`
+- Arquivo `.env`, `knexfile.js`, `server.js`, `INSTRUCTIONS.md`
 
-## Recursos para você continuar evoluindo
-
-Como o problema está relacionado à autenticação e tratamento de erros, recomendo fortemente que você assista a este vídeo feito pelos meus criadores, que explica os conceitos básicos e fundamentais da cibersegurança e autenticação com JWT:
-
-- [Autenticação JWT na prática](https://www.youtube.com/watch?v=keS0JWOypIU)  
-- [Conceitos de autenticação e segurança](https://www.youtube.com/watch?v=Q4LQOfYwujk)  
-
-Além disso, para garantir que seu tratamento global de erros esteja bem implementado, dê uma olhada neste vídeo sobre boas práticas na arquitetura MVC e tratamento de erros:
-
-- [Arquitetura MVC e boas práticas em Node.js](https://www.youtube.com/watch?v=bGN_xNc4A1k&t=3s)  
-
-E para reforçar a configuração correta do banco e ambiente com Docker e Knex, veja:
-
-- [Configuração de Banco de Dados com Docker e Knex](https://www.youtube.com/watch?v=uEABDBQV-Ek&t=1s)  
+Isso mostra seu cuidado e organização, que são fundamentais para projetos escaláveis e manuteníveis.
 
 ---
 
-## Resumo dos pontos para você focar agora:
+### Resumo rápido para focar:
 
-- [ ] Verifique o arquivo `utils/errorHandler.js` para garantir que ele retorne o status HTTP correto, especialmente 401, quando o middleware `authenticateToken` passar um erro.  
-- [ ] Melhore o middleware `authenticateToken` para validar o formato do header Authorization e retornar erros claros se o token estiver ausente ou mal formatado.  
-- [ ] Teste manualmente o acesso às rotas de agentes sem enviar o token para confirmar se o status 401 está sendo retornado.  
-- [ ] Confirme que as variáveis de ambiente `JWT_SECRET` e `SALT_ROUNDS` estão configuradas corretamente no `.env`.  
-- [ ] Continue explorando os vídeos recomendados para aprofundar seu conhecimento em autenticação JWT e boas práticas de Node.js.
+- [ ] Remova o middleware extra que está sendo passado como terceiro argumento em `app.use('/agentes', agentesRouter, ...)` no `server.js`.
+- [ ] Se quiser manter logs, crie um middleware separado e o aplique antes do router, garantindo que erros sejam propagados corretamente.
+- [ ] Teste novamente as requisições sem token JWT para garantir que o status 401 está sendo retornado.
+- [ ] Continue usando o padrão de tratamento de erros com `ApiError` e middleware global de erro.
+- [ ] Mantenha a organização do projeto e a documentação clara como está.
+- [ ] Para aprofundar, assista aos vídeos recomendados para entender melhor middleware e autenticação JWT.
 
 ---
 
-Luiz, você está fazendo um trabalho incrível, especialmente na parte de segurança e organização do código! 🚀 Continue nessa pegada, corrigindo esse detalhe do tratamento de erro e vai ficar perfeito para produção. Estou aqui torcendo pelo seu sucesso! 💪✨
+Luiz, você está muito próximo da perfeição! Esse pequeno ajuste no fluxo de middlewares vai destravar o teste que falhou e deixar sua aplicação ainda mais profissional. Continue assim, com esse cuidado e atenção aos detalhes! 💪✨
 
-Se precisar de mais ajuda, é só chamar!
+Se precisar de ajuda para implementar o middleware de log corretamente ou para entender o fluxo de middlewares, só chamar! 😉
 
-Um abraço e bons códigos! 👨‍💻🔥
+Um abraço e sucesso no seu aprendizado! 🚀🚀🚀
 
 > Caso queira tirar uma dúvida específica, entre em contato com o Chapter no nosso [discord](https://discord.gg/DryuHVnz).
 
