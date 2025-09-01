@@ -5,7 +5,7 @@ const secret = process.env.JWT_SECRET || 'secret';
 
 function authenticateToken(req, res, next) {
     try {
-        const authHeader = req.headers.authorization;
+        const authHeader = req.headers['authorization'];
         const token = authHeader && authHeader.split(' ')[1];
 
         if (!token) {

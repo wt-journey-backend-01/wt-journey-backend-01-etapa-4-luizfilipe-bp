@@ -20,7 +20,6 @@ async function register(req, res) {
     user.senha = hashedPassword;
     const createdUsuario = await usuariosRepository.create(user);
 
-    delete createdUsuario.senha;
     res.status(201).json(createdUsuario);
 }
 
@@ -41,13 +40,9 @@ async function login(req, res) {
         });
     }
 
-    const token = jwt.sign(
-        { id: existingUsuario.id, nome: existingUsuario.nome, email: existingUsuario.email },
-        secret,
-        {
-            expiresIn: '1h',
-        }
-    );
+    const token = jwt.sign({ nome: existingUsuario.nome, email: existingUsuario.email }, secret, {
+        expiresIn: '1h',
+    });
 
     return res.status(200).json({ access_token: token });
 }
