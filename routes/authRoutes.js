@@ -6,5 +6,6 @@ const { registerUsuarioSchema, loginUsuarioSchema } = require('../utils/usuarios
 
 router.post('/register', validateSchema(registerUsuarioSchema), authController.register);
 router.post('/login', validateSchema(loginUsuarioSchema), authController.login);
+router.post('/logout', authController.logout);
 
 module.exports = router;
