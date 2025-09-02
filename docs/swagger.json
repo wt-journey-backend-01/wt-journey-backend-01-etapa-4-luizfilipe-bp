@@ -23,6 +23,15 @@
         {
             "name": "Auth",
             "description": "Rota de autenticação de usuários."
+        },
+        {
+            "name": "Usuarios",
+            "description": "Rota de gerenciamento de usuários."
+        }
+    ],
+    "security": [
+        {
+            "bearerAuth": []
         }
     ],
     "paths": {
@@ -30,6 +39,11 @@
             "get": {
                 "summary": "Retorna uma lista de agentes",
                 "tags": ["Agentes"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "query",
@@ -66,6 +80,11 @@
             "post": {
                 "summary": "Cria um novo agente",
                 "tags": ["Agentes"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -93,6 +112,11 @@
             "get": {
                 "summary": "Retorna um agente pelo ID",
                 "tags": ["Agentes"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -118,6 +142,11 @@
             "put": {
                 "summary": "Atualiza um agente pelo ID",
                 "tags": ["Agentes"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -156,6 +185,11 @@
             "patch": {
                 "summary": "Atualiza parcialmente um agente pelo ID",
                 "tags": ["Agentes"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -206,6 +240,11 @@
             "delete": {
                 "summary": "Deleta um agente pelo ID",
                 "tags": ["Agentes"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -233,6 +272,11 @@
             "get": {
                 "summary": "Retorna uma lista de casos por busca textual",
                 "tags": ["Casos"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "query",
@@ -261,6 +305,11 @@
             "get": {
                 "summary": "Retorna os casos de um agente pelo ID",
                 "tags": ["Agentes"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -289,6 +338,11 @@
             "get": {
                 "summary": "Retorna o agente associado a um caso pelo ID",
                 "tags": ["Casos"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -317,6 +371,11 @@
             "get": {
                 "summary": "Retorna uma lista de casos",
                 "tags": ["Casos"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "query",
@@ -356,6 +415,11 @@
             "post": {
                 "summary": "Cria um novo caso",
                 "tags": ["Casos"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -383,6 +447,11 @@
             "get": {
                 "summary": "Retorna um caso pelo ID",
                 "tags": ["Casos"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -408,6 +477,11 @@
             "put": {
                 "summary": "Atualiza um caso pelo ID",
                 "tags": ["Casos"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -446,6 +520,11 @@
             "patch": {
                 "summary": "Atualiza parcialmente um caso pelo ID",
                 "tags": ["Casos"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
                 "parameters": [
                     {
                         "in": "path",
@@ -537,12 +616,12 @@
                                         "type": "string",
                                         "example": "luiz@gmail.com"
                                     },
-                                    "password": {
+                                    "senha": {
                                         "type": "string",
                                         "example": "Senha123."
                                     }
                                 },
-                                "required": ["email", "password"]
+                                "required": ["email", "senha"]
                             }
                         }
                     }
@@ -623,9 +702,97 @@
                     }
                 }
             }
+        },
+        "/auth/logout": {
+            "post": {
+                "summary": "Realiza o logout do usuário",
+                "tags": ["Auth"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Logout bem-sucedido, sem conteúdo de resposta."
+                    },
+                    "401": {
+                        "description": "Não autorizado, token JWT inválido ou ausente."
+                    }
+                }
+            }
+        },
+        "/usuarios/me": {
+            "get": {
+                "summary": "Retorna informações do usuário autenticado",
+                "tags": ["Usuarios"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Informações do usuário retornadas com sucesso.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Usuario"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Não autorizado, token JWT inválido ou ausente."
+                    },
+                    "404": {
+                        "description": "Usuário não encontrado."
+                    }
+                }
+            }
+        },
+        "/usuarios/{id}": {
+            "delete": {
+                "summary": "Deleta um usuário pelo ID",
+                "tags": ["Usuarios"],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "in": "path",
+                        "name": "id",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        },
+                        "description": "ID do usuário a ser deletado"
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "Usuário deletado com sucesso."
+                    },
+                    "401": {
+                        "description": "Não autorizado, token JWT inválido ou ausente."
+                    },
+                    "404": {
+                        "description": "Usuário não encontrado."
+                    }
+                }
+            }
         }
     },
     "components": {
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
+            }
+        },
         "schemas": {
             "Agente": {
                 "type": "object",
