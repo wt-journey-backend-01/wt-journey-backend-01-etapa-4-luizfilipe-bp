@@ -84,22 +84,6 @@ Executa os arquivos de _seed_ do **Knex**, populando o banco com dados iniciais 
 
 A API possui endpoints para **registro** e **login** de usuários, com autenticação baseada em **JWT (JSON Web Token)**.
 
-## Registro de Usuários
-
-**Rota:** `POST /auth/register`
-
-### 📥 Requisição
-
-```json
-{
-    "nome": "Luiz Filipe",
-    "email": "luiz@email.com",
-    "senha": "minhaSenha123."
-}
-```
-
-## Login de Usuários
-
 ### Variáveis de ambiente
 
 Certifique-se de que seu arquivo `.env` contém as seguintes variáveis:
@@ -111,6 +95,22 @@ SALT_ROUNDS=valor_inteiro_do_salt
 
 -   `JWT_SECRET`: Segredo utilizado para assinar e validar os tokens JWT.
 -   `SALT_ROUNDS`: Número de rounds para geração do hash das senhas.
+
+## Registro de usuários
+
+**Rota:** `POST /auth/register`
+
+### Requisição
+
+```json
+{
+    "nome": "Luiz Filipe",
+    "email": "luiz@email.com",
+    "senha": "minhaSenha123."
+}
+```
+
+## Login de Usuários
 
 **Rota:** `POST /auth/login`
 
