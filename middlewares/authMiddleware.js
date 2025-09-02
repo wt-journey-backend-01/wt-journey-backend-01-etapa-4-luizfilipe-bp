@@ -6,11 +6,18 @@ const secret = process.env.JWT_SECRET || 'secret';
 function authenticateToken(req, res, next) {
     try {
         const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
-
-        if (!token) {
+        if (!authHeader) {
             return next(
                 new ApiError(401, 'Token não fornecido', {
+                    token: 'O token de autenticação é necessário',
+                })
+            );
+        }
+        
+        const token = authHeader && authHeader.split(' ')[1];
+        if (!token) {
+            return next(
+                new ApiError(401, 'Token fornecido com formato inválido', {
                     token: 'O token de autenticação é necessário',
                 })
             );

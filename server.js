@@ -20,13 +20,18 @@ app.use(
         console.log(
             'Requisição recebida em /agentes:',
             req.method,
+            req.params,
             req.originalUrl,
             'Auth header:',
             req.headers['authorization']
         );
         next();
     },
-    agentesRouter
+    agentesRouter,
+    (req, res, next) => {
+        console.log('Resposta enviada de /agentes:', req.params, req.body, res.statusCode);
+        next();
+    }
 );
 
 const swaggerDocs = require('./docs/swagger.json');
