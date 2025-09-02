@@ -20,6 +20,7 @@ async function register(req, res) {
     user.senha = hashedPassword;
     const createdUsuario = await usuariosRepository.create(user);
 
+    delete createdUsuario.senha;
     res.status(201).json(createdUsuario);
 }
 
